@@ -1,0 +1,795 @@
+// |------------------------------------------------------
+// |------------------------------------------------------
+// | Mixins
+// |------------------------------------------------------
+// |------------------------------------------------------
+
+// Helper to apply multiple config for a certain state with one mixin
+@mixin kgrid_set(
+	$settings,
+	$state : default
+) {
+	
+	// loop on each settings
+	@each $settingName, $settingValue in $settings
+	{
+		$sn : unquote($settingName);
+		$sv : $settingValue;
+
+		// check if setting name is a state :
+		@if _kgrid_has_state($sn) {
+			// process the state
+			@include kgrid_set($sv, $sn);
+		} @else {
+			@if $sn == container {
+				@include kgrid_container($state);
+			} @else if $sn == grid {
+				@include kgrid($sv, $state);
+			} @else if $sn == push {
+				@include kgrid_push($sv, $state);
+			} @else if $sn == pull {
+				@include kgrid_pull($sv, $state);
+			} @else if $sn == prefix {
+				@include kgrid_prefix($sv, $state);
+			} @else if $sn == suffix {
+				@include kgrid_suffix($sv, $state);
+			} @else if $sn == pull {
+				@include kgrid_pull($sv, $state);
+			} @else if $sn == clear_each {
+				@include kgrid_clear_each(nth($sv,1), nth($sv,2), $state);
+			} @else if $sn == centered {
+				@include kgrid_centered($state);
+			} @else if $sn == parent {
+				@include kgrid_parent($state);
+			} @else if $sn == vertical_align {
+				@include kgrid_vertical_align($sv, $state);
+			} @else if $sn == hide {
+				@if $sv == true {
+					@include kgrid_hide($state);
+				} @else {
+					@include kgrid_show($state);
+				}
+			} @else if $sn == show {
+				@if $sv == true {
+					@include kgrid_show($state);
+				} @else {
+					@include kgrid_hide($state);
+				}
+			} @else if $sn == visible {
+				@if $sv == true {
+					@include kgrid_visible($state);
+				} @else {
+					@include kgrid_not_visible($state);
+				}
+			} @else if $sn == not_visible {
+				@if $sv == true {
+					@include kgrid_not_visible($state);
+				} @else {
+					@include kgrid_visible($state);
+				}
+			} @else if $sn == show_inline {
+				@if $sv == true {
+					@include kgrid_show_inline($state);
+				} @else {
+					@include kgrid_hide($state);
+				}
+			} @else if $sn == float {
+				@include kgrid_float($sv, $state);
+			} @else if $sn == clear {
+				@include kgrid_clear($sv, $state);
+			} @else if $sn == no_gutter
+				or $sn == no_margin {
+				@include kgrid_no_gutter($sv, $state);
+			} @else if $sn == gutter
+				or $sn == margin {
+				@include kgrid_gutter($sv, $state);
+			} @else {
+				// we do nothing
+			}
+		}
+	}
+}
+
+// Responsive helpers mixins :
+@mixin kgrid_state(
+	$states,
+	$has-parent : true
+) {
+
+	// check first param if is a state :
+	$firstState : nth($states,1);
+	@if _kgrid_has_state($firstState) {
+
+		// loop on each states :
+		@each $state in $states
+		{
+			// variables :
+			$html-states-classes : _kgrid_get_var_value(html-states-classes, $state);
+			$debug : _kgrid_get_var_value(debug, $state);
+			$stateName : _kgrid_get_var_value(name, $state);
+
+			// check if is a state :
+			@if ($html-states-classes or $debug)
+				and $stateName {
+				// html class :
+				@if $has-parent {
+					html#{_kgrid_classname("#{$stateName}")} & { @content; }
+				} @else {
+					html#{_kgrid_classname("#{$stateName}")} { @content; }
+				}
+			}
+
+			// get the media query :
+			$q : _kgrid_get_media_query($state);
+
+			// make the media query if a query exist :
+			@if $q {
+				@media #{$q} {
+					@content;
+				}
+			}
+			@else
+			{
+				@content;
+			}
+		}
+
+	} @else {
+
+		// variables :
+		$html-states-classes : _kgrid_get_var_value(html-states-classes, $states);
+		$debug : _kgrid_get_var_value(debug, $states);
+		$stateName : _kgrid_get_var_value(name, $states);
+
+		// check if is a state :
+		@if ($html-states-classes or $debug)
+			and $stateName {
+			// html class :
+			@if $has-parent {
+				html#{_kgrid_classname("#{$stateName}")} & { @content; }
+			} @else {
+				html#{_kgrid_classname("#{$stateName}")} { @content; }
+			}
+		}
+
+		// get the media query :
+		$q : _kgrid_get_media_query($states);
+
+		// make the media query if a query exist :
+		@if $q {
+			@media #{$q} {
+				@content;
+			}
+		}
+		@else
+		{
+			@content;
+		}
+
+	}
+}
+
+
+
+// Container mixin :
+@mixin kgrid_container(
+	$state : default
+) {
+	@include _kgrid_container_common($state);
+}
+
+
+// Grid mixin :
+// Set the width of the specified grid column :
+@mixin kgrid(
+	$columns,
+	$state : default
+) {
+	// common :
+	@include _kgrid_grid_common();
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid($columns, $state);
+		}
+	} @else {
+		@include _kgrid($columns, $state);
+	}
+}
+@mixin _kgrid(
+	$columns,
+	$state : default
+) {
+	// vars :
+	$name : _kgrid_get_var_value(name, $state);
+	$context : _kgrid_get_var_value(context, $state);
+	$name-multiplicator : _kgrid_get_var_value(name-multiplicator, $state);
+	$gutter-width : _kgrid_get_var_value(gutter-width, $state);
+	$ie7-support : _kgrid_get_var_value(ie7-support, $state);
+	$debug : _kgrid_get_var_value(debug, $state);
+	$debug-show-class-names : _kgrid_get_var_value(debug-show-class-names, $state);
+
+	// vars :
+	$width : percentage(1 / $context * ($columns / $name-multiplicator) );
+
+	// set value :
+	width:$width;
+	
+	// ie7 support :
+	@if $ie7-support == true {
+		*width: expression((this.parentNode.clientWidth/#{$context}*#{($columns / $name-multiplicator)} - parseInt(this.currentStyle['paddingLeft']) - parseInt(this.currentStyle['paddingRight'])) + 'px');
+	}
+	
+	// debug :
+	@if $debug == true and $debug-show-class-names == true {
+		#{$kgrid-debug-selector} {
+			&:before {
+				@if $name == default {
+					content:"grid-#{$name}-#{$columns}";
+				} @else {
+					content:"grid-#{$name}-#{$columns}" !important;
+				}
+			}
+			&.parent:before {
+				@if $name == default {
+					content:"grid-parent-#{$name}-#{$columns}";
+				} @else {
+					content:"grid-parent-#{$name}-#{$columns}" !important;
+				}
+			}
+		}
+	}
+}
+
+
+// push :
+// Push the element of the count of column wanted
+@mixin kgrid_push(
+	$columns,
+	$state : default
+) {
+	// common :
+	@include _kgrid_push_common($state);
+
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_push($columns,$state);
+		}
+	} @else {
+		@include _kgrid_push($columns,$state);
+	}
+}
+@mixin _kgrid_push(
+	$columns,
+	$state : default
+) {
+	// variables :
+	$name : _kgrid_get_var_value(name, $state);
+	$context : _kgrid_get_var_value(context, $state);
+	$direction : _kgrid_get_var_value(direction, $state);
+	$name-multiplicator : _kgrid_get_var_value(name-multiplicator, $state);
+	$debug : _kgrid_get_var_value(debug, $state);
+	$debug-show-class-names : _kgrid_get_var_value(debug-show-class-names, $state);
+
+	// vars :
+	$width : percentage(1 / $context) * ($columns / $name-multiplicator);
+	@if $direction == rtl { $width : $width*-1; }
+	left:$width;
+
+	// debug css :
+	@if $debug == true and $debug-show-class-names == true {
+		#{$kgrid-debug-selector} {
+			&:after {
+				@if $name == default {
+					content:"push-#{$name}-#{$columns}";
+				} @else {
+					content:"push-#{$name}-#{$columns}" !important;
+				}
+			}
+		}
+	}
+
+}
+
+
+// pull :
+// Pull the element of the count of column wanted
+@mixin kgrid_pull(
+	$columns,
+	$state : default
+) {
+	// common :
+	@include _kgrid_pull_common($state);
+
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_pull($columns,$state);
+		}
+	} @else {
+		@include _kgrid_pull($columns,$state);
+	}
+}
+@mixin _kgrid_pull(
+	$columns,
+	$state : default
+) {
+	// vars :
+	$name : _kgrid_get_var_value(name, $state);
+	$context : _kgrid_get_var_value(context, $state);
+	$direction : _kgrid_get_var_value(direction, $state);
+	$name-multiplicator : _kgrid_get_var_value(name-multiplicator, $state);
+	$debug : _kgrid_get_var_value(debug, $state);
+	$debug-show-class-names : _kgrid_get_var_value(debug-show-class-names, $state);
+
+	// vars :
+	$width : percentage(1 / $context) * ($columns / $name-multiplicator);
+	@if $direction == rtl { $width : $width*-1; }
+	right:$width;
+
+	// debug css :
+	@if $debug == true and $debug-show-class-names == true {
+		#{$kgrid-debug-selector} {
+			&:after {
+				@if $name == default {
+					content:"pull-#{$name}-#{$columns}";
+				} @else {
+					content:"pull-#{$name}-#{$columns}" !important;
+				}
+			}
+		}
+	}
+}
+
+
+// push :
+// Push the element of the count of column wanted
+@mixin kgrid_prefix(
+	$columns,
+	$state : default
+) {
+	// common :
+	@include _kgrid_prefix_common($state);
+	
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_prefix($columns,$state);
+		}
+	} @else {
+		@include _kgrid_prefix($columns,$state);
+	}
+}
+@mixin _kgrid_prefix(
+	$columns,
+	$state : default
+) {
+	// vars :
+	$name : _kgrid_get_var_value(name, $state);
+	$context : _kgrid_get_var_value(context, $state);
+	$direction : _kgrid_get_var_value(direction, $state);
+	$gutter-width : _kgrid_get_var_value(gutter-width, $state);
+	$name-multiplicator : _kgrid_get_var_value(name-multiplicator, $state);
+	$debug : _kgrid_get_var_value(debug, $state);
+	$debug-show-class-names : _kgrid_get_var_value(debug-show-class-names, $state);
+
+	// vars :
+	$width : percentage(1 / $context) * ($columns / $name-multiplicator);
+
+	// set value :
+	@if $direction == rtl { margin-right:$width; }
+	@else { margin-left:$width; }
+
+	// debug css :
+	@if $debug == true and $debug-show-class-names == true {
+		#{$kgrid-debug-selector} {
+			&:after {
+				@if $name == default {
+					content:"prefix-#{$name}-#{$columns}";
+				} @else {
+					content:"prefix-#{$name}-#{$columns}" !important;
+				}
+			}
+		}
+	}
+}
+
+
+// pull :
+// Pull the element of the count of column wanted
+@mixin kgrid_suffix(
+	$columns,
+	$state : default
+) {
+	// common :
+	@include _kgrid_suffix_common($state);
+
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_suffix($columns,$state);
+		}
+	} @else {
+		@include _kgrid_suffix($columns,$state);
+	}
+}
+@mixin _kgrid_suffix(
+	$columns,
+	$state : default
+) {
+	// vars :
+	$name : _kgrid_get_var_value(name, $state);
+	$context : _kgrid_get_var_value(context, $state);
+	$direction : _kgrid_get_var_value(direction, $state);
+	$gutter-width : _kgrid_get_var_value(gutter-width, $state);
+	$name-multiplicator : _kgrid_get_var_value(name-multiplicator, $state);
+	$debug : _kgrid_get_var_value(debug, $state);
+	$debug-show-class-names : _kgrid_get_var_value(debug-show-class-names, $state);
+
+	// vars :
+	$width : percentage(1 / $context) * ($columns / $name-multiplicator);
+	
+	// set value :
+	@if $direction == rtl { margin-left:$width; }
+	@else { margin-right:$width; }
+
+	// debug css :
+	@if $debug == true and $debug-show-class-names == true {
+		#{$kgrid-debug-selector} {
+			&:after {
+				@if $name == default {
+					content:"suffix-#{$name}-#{$columns}";
+				} @else {
+					content:"suffix-#{$name}-#{$columns}" !important;
+				}
+			}
+		}
+	}
+}
+
+
+// grid background :
+// Display the grid background debug
+@mixin kgrid_grid_background(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_grid_background($state);
+		}
+	} @else {
+		@include _kgrid_grid_background($state);
+	}
+}
+@mixin _kgrid_grid_background(
+	$state : default
+) {
+	
+	// variables :
+	$context : _kgrid_get_var_value(context, $state);
+
+	position:relative;
+	z-index:9999;
+	&:before {
+		content:'';
+		position:absolute;
+		top:0; left:0;
+		width:100%; height:100% !important;
+		// vars :
+		$width : percentage(1 / $context);
+		background: linear-gradient(to right, rgba(0,0,0,.01) 50% , rgba(0,0,0,.04) 50%); /* Standard syntax */
+		background-size:($width*2) 100%;
+		// background-position:$kgrid-gutter-width/2 0;
+	}
+}
+
+
+/**
+ * Parent clear each
+ */
+// Grid mixin :
+// Set the width of the specified grid column :
+@mixin kgrid_clear_each(
+	$clearEach,
+	$clearWhat : both,
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_clear_each($clearEach, $clearWhat);
+		}
+	} @else {
+		@include _kgrid_clear_each($clearEach, $clearWhat);
+	}
+}
+@mixin _kgrid_clear_each(
+	$clearEach,
+	$clearWhat
+) {
+	> *:nth-child(#{$clearEach}n+1) {
+		clear : $clearWhat;
+	}
+}
+
+
+// Grid centered :
+@mixin kgrid_centered(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_centered();
+		}
+	} @else {
+		@include _kgrid_centered();
+	}
+}
+@mixin _kgrid_centered() {
+	display:block !important;
+	float:none !important;
+	margin-left:auto !important;
+	margin-right:auto !important;
+	clear:both !important;
+}
+
+
+// Grid parent :
+@mixin kgrid_parent(
+	$state : default
+) {
+	// common :
+	@include _kgrid_parent_common();
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_parent();
+		}
+	} @else {
+		@include _kgrid_parent();
+	}
+}
+@mixin _kgrid_parent() {
+	@include kgrid_no_gutter();
+}
+
+
+/**
+ * Vertical align :
+ */
+@mixin kgrid_vertical_align(
+	$align : middle,
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_vertical_align($align);
+		}
+	} @else {
+		@include _kgrid_vertical_align($align);
+	}
+}
+@mixin _kgrid_vertical_align(
+	$align : middle
+) {
+	font-size:0;
+	clear:both;
+
+	> * {
+		display:inline-block;
+		float:none !important;
+		vertical-align:$align;
+		font-size:1rem;
+	}
+}
+
+
+// Hide on :
+// @param 	String 	$media  On what state
+@mixin kgrid_hide(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_hide();
+		}
+	} @else {
+		@include _kgrid_hide();
+	}
+}
+@mixin _kgrid_hide() {
+	display:none;
+}
+
+
+// Not visible on :
+// @param 	String 	$media 	What to hide (one of the 3 state classes name)
+@mixin kgrid_not_visible(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_not_visible();
+		}
+	} @else {
+		@include _kgrid_not_visible();
+	}
+}
+@mixin _kgrid_not_visible() {
+	visibility:hidden;
+}
+
+
+// Show on
+// @param 	String 	$media 	What to hide (one of the 3 state classes name)
+@mixin kgrid_show(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_show();
+		}
+	} @else {
+		@include _kgrid_show();
+	}
+}
+@mixin _kgrid_show() {
+	display:block;
+}
+
+
+/**
+ * Show inline
+ *
+ * @param 	String 		$state 		The state name
+ */
+@mixin kgrid_show_inline(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_show_inline();
+		}
+	} @else {
+		@include _kgrid_show_inline();
+	}
+}
+@mixin _kgrid_show_inline() {
+	display:inline-block;
+}
+
+
+// Visible on :
+// @param 	String 	$media 	On what state
+@mixin kgrid_visible(
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_visible();
+		}
+	} @else {
+		@include _kgrid_visible();
+	}
+}
+@mixin _kgrid_visible() {
+	visibility:visible;
+}
+
+
+// kgrid Right :
+@mixin kgrid_float(
+	$float-direction : left,
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_float($float-direction);
+		}
+	} @else {
+		@include _kgrid_float($float-direction);
+	}
+}
+@mixin _kgrid_float(
+	$float-direction : left
+) {
+	float:#{$float-direction};
+}
+
+
+// kgrid clear :
+// @param 	String 	$clear-direction 	The direction to clear
+// @param 	String 	$state 				The state
+@mixin kgrid_clear(
+	$clear-direction : both,
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_clear($clear-direction);
+		}
+	} @else {
+		@include _kgrid_clear($clear-direction);
+	}
+}
+@mixin _kgrid_clear(
+	$clear-direction : both
+) {
+	clear:#{$clear-direction};
+}
+
+
+// kgrid no gutter :
+// @param 	String 	$side 				The side to clear
+// @param 	String 	$state 				The state
+@mixin kgrid_no_gutter(
+	$side : left right,
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_no_gutter($side);
+		}
+	} @else {
+		@include _kgrid_no_gutter($side);
+	}
+}
+@mixin kgrid_no_margin(
+	$side : left right,
+	$state : default
+) {
+	@include kgrid_no_gutter($side, $state);
+}
+@mixin _kgrid_no_gutter(
+	$side : left right
+) {
+	@each $s in $side {
+		padding-#{$s} : 0;
+	}
+}
+
+
+// kgrid gutter :
+// @param 	String 	$side 				The side to clear
+// @param 	String 	$state 				The state
+@mixin kgrid_gutter(
+	$side : left right,
+	$state : default
+) {
+	// check if need media query :
+	@if $state {
+		@include kgrid_state($state) {
+			@include _kgrid_gutter($side);
+		}
+	} @else {
+		@include _kgrid_gutter($side);
+	}
+}
+// shortcut :
+@mixin kgrid_margin(
+	$side : left right,
+	$state : default
+) {
+	@include kgrid_gutter($side, $state);
+}
+@mixin _kgrid_gutter(
+	$side : left right,
+	$state : default
+) {
+	$gutter-width : _kgrid_get_var_value(gutter-width, $state);
+	@each $s in $side {
+		padding-#{$s} : $gutter-width / 2;
+	}
+}

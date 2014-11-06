@@ -1,0 +1,105 @@
+// |------------------------------------------------------
+// |------------------------------------------------------
+// | Common mixins
+// |------------------------------------------------------
+// |------------------------------------------------------
+
+@mixin _kgrid_container_common(
+	$state : default
+) {
+	@extend %kgrid-simple-clearfix;
+	@extend %kgrid-container-common;
+	// debug part :
+	$debug : _kgrid_get_var_value(debug, $state);
+	@if ($debug == true) {
+		#{$kgrid-debug-selector} {
+			@extend %kgrid-container-debug-common;
+		}
+	}
+}
+@mixin _kgrid_grid_common() {
+	@extend %kgrid-grid-common;
+	
+	// loop on each states :
+	@each $stateName, $state in $_kgrid-states
+	{
+		// vars :
+		$direction : _kgrid_get_var_value(direction, $state);
+		$classes : _kgrid_get_var_value(classes, $state);
+		$gutter-width : _kgrid_get_var_value(gutter-width, $state);
+		$debug : _kgrid_get_var_value(debug, $state);
+		
+		@if $classes
+		{
+			@include kgrid_state($state) {
+				@if $direction == rtl {
+					float:right;
+					direction:rtl;
+				} @else {
+					float:left;
+					direction:ltr;
+				}
+
+				padding-left:$gutter-width/2;
+				padding-right:$gutter-width/2;
+			}
+			
+			@if $debug == true {
+				#{$kgrid-debug-selector} {
+					@extend %kgrid-grid-debug-common;
+				}
+			}
+		}
+	}
+}
+@mixin _kgrid_parent_common() {
+	@extend %kgrid-clearfix;
+	@extend %kgrid-parent-common;
+}
+@mixin _kgrid_push_common(
+	$state : default
+) {
+	$debug : _kgrid_get_var_value(debug, $state);
+
+	// extend common :
+	@extend %kgrid-push-pull-common;
+	@if $debug == true {
+		#{$kgrid-debug-selector} {
+			@extend %kgrid-push-pull-debug-background-common;
+			background-color:#f4efdf !important;
+		}
+	}
+}
+@mixin _kgrid_pull_common(
+	$state : default
+) {
+	$debug : _kgrid_get_var_value(debug, $state);
+
+	@extend %kgrid-push-pull-common;
+	@if $debug == true {
+		#{$kgrid-debug-selector} {
+			@extend %kgrid-push-pull-debug-background-common;
+			background-color:#cfe4d5 !important;
+		}
+	}
+}
+@mixin _kgrid_prefix_common(
+	$state : default
+) {
+	$debug : _kgrid_get_var_value(debug, $state);
+	@if $debug == true {
+		#{$kgrid-debug-selector} {
+			@extend %kgrid-prefix-debug-common;
+		}
+	}
+}
+@mixin _kgrid_suffix_common(
+	$state : default
+) {
+	$debug : _kgrid_get_var_value(debug, $state);
+	@if $debug == true {
+		#{$kgrid-debug-selector} {
+			@extend %kgrid-suffix-debug-common;
+		}
+	}
+}
