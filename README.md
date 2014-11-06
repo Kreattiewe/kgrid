@@ -47,7 +47,7 @@ Generate all classes :
 
 Use your grid in html :
 
-```markup
+```html
 <div class="container">
   <div class="kgrid-12 hide-print">
     Header
